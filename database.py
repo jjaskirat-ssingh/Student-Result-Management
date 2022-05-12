@@ -38,25 +38,34 @@ SEARCH_SUBJECT = """SELECT * FROM subjects WHERE name LIKE %s;"""
 
 SEARCH_STUDENT_ROLLNO = """
 DROP FUNCTION SEARCH_STUDENT_ROLLNO_(roll integer);
+--DROP TYPE my_type;
+
+--CREATE TYPE my_type AS (auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER);
+
 CREATE OR REPLACE FUNCTION SEARCH_STUDENT_ROLLNO_(roll integer)
 RETURNS TABLE(auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
+--RETURNS setof my_type 
 AS 
 $$
 declare
-    auxname TEXT;
-    auxbatch TEXT;
-    auxsubname TEXT;
-    auxmarks INTEGER;
-    auxstatus INTEGER;
+    --ret my_type;
+    ret RECORD; 
+    --auxname TEXT;
+    --auxbatch TEXT;
+    --auxsubname TEXT;
+    --auxmarks INTEGER;
+    --auxstatus INTEGER;
 begin
     RETURN QUERY
     select s.name, s.batch, sub.name, sc.marks, sc.status
-    --into auxname, auxbatch, auxsubname, auxmarks, auxstatus
+    --into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
     from (students s join scores sc on s.rollno = sc.student_rollno) join subjects sub on sub.id = sc.subject_id
     where s.rollno = roll;
+    --RETURN ret;
+    --RETURN NEXT;
 end; 
 $$
-LANGUAGE plpgsql
+LANGUAGE plpgsql;
 """
 
 # SEARCH_STUDENT_ROLLNO_CALL = """
