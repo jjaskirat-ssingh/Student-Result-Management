@@ -37,14 +37,10 @@ WHERE students.rollno = %s;"""
 SEARCH_SUBJECT = """SELECT * FROM subjects WHERE name LIKE %s;"""
 
 SEARCH_STUDENT_ROLLNO = """
-DROP FUNCTION SEARCH_STUDENT_ROLLNO_(roll integer);
---DROP TYPE my_type;
-
---CREATE TYPE my_type AS (auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER);
 
 CREATE OR REPLACE FUNCTION SEARCH_STUDENT_ROLLNO_(roll integer)
 RETURNS TABLE(auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
---RETURNS setof my_type 
+-- RETURNS setof my_type 
 AS 
 $$
 declare
@@ -58,11 +54,11 @@ declare
 begin
     RETURN QUERY
     select s.name, s.batch, sub.name, sc.marks, sc.status
-    --into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
+    -- into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
     from (students s join scores sc on s.rollno = sc.student_rollno) join subjects sub on sub.id = sc.subject_id
     where s.rollno = roll;
-    --RETURN ret;
-    --RETURN NEXT;
+    -- RETURN ret;
+    -- RETURN NEXT;
 end; 
 $$
 LANGUAGE plpgsql;
@@ -206,22 +202,29 @@ LANGUAGE PLPGSQL
 
 SEARCH_STUDENT_BATCH = """
 CREATE OR REPLACE FUNCTION SEARCH_STUDENT_BATCH(batch_no varchar)
-returns setof students
+-- returns table(auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
+-- returns SETOF RECORD
+returns table(auxrollno INTEGER, auxname TEXT, auxbatch TEXT)
 AS 
 $$
-DECLARE ret record;
+DECLARE 
+    -- ret record;
     -- Cursor
-    entries CURSOR FOR 
-        SELECT * from students where batch=batch_no;
+    -- entries CURSOR FOR SELECT * from students ORDER BY batch;
 BEGIN
-    OPEN entries;
+    RETURN QUERY
+    SELECT * FROM students where batch = batch_no;
+    -- OPEN entries;
 
-    LOOP
-    fetch entries into ret;
-        exit when ret = null;
-        return next ret;
-    END LOOP;
-    close entries;
+    -- LOOP
+    -- fetch entries into ret;
+    --     exit when ret = null;
+    --     if ret.batch  = batch_no then
+    --         return next ret;
+    --     end if;
+    -- END LOOP;  
+    
+    -- CLOSE entries;
 END;
 $$ LANGUAGE plpgsql
 """
@@ -251,6 +254,7 @@ $$ LANGUAGE plpgsql
 dbname = os.environ.get("DATABASE_NAME")
 user = os.environ.get("DATABASE_USER")
 password = os.environ.get("DATABASE_PASSWORD")
+# print(dbname, user, password)
 y = "dbname=" + dbname + " user=" + user + " password=" + password
 connection = psycopg2.connect(y)
 
@@ -340,4 +344,5 @@ def search_student_batch(batch):
         with connection.cursor() as cursor:
             cursor.execute(SEARCH_STUDENT_BATCH, (batch,))
             cursor.execute("SELECT * FROM SEARCH_STUDENT_BATCH(%s); ", (batch,))
-            return cursor.fetchall()
+            rows = cursor.fetchall()
+            return rows
