@@ -27,6 +27,7 @@ CREATE_SCORES_TABLE = """CREATE TABLE IF NOT EXISTS scores (
 
 INSERT_SUBJECT = "INSERT INTO subjects (name) VALUES (%s)"
 SELECT_ALL_SUBJECTS = "SELECT * FROM subjects;" 
+SELECT_ALL_STUDENTS = "SELECT * FROM students;" 
 INSERT_STUDENT = "INSERT INTO students (rollno, name, batch) VALUES (%s, %s, %s)"
 INSERT_MARKS_SUBJECT = "INSERT INTO scores (student_rollno, subject_id, marks, status) VALUES (%s, %s, %s, %s)"
 SELECT_MARKS_STUDENT = """SELECT scores.*
@@ -64,6 +65,33 @@ $$
 LANGUAGE plpgsql;
 """
 
+FILTER_BY_SUBJECT = """
+
+CREATE OR REPLACE FUNCTION FILTER_BY_SUBJECT(subid integer)
+RETURNS TABLE(auxrollno INTEGER, auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
+-- RETURNS setof my_type 
+AS 
+$$
+declare
+    --ret my_type;
+    ret RECORD; 
+    --auxname TEXT;
+    --auxbatch TEXT;
+    --auxsubname TEXT;
+    --auxmarks INTEGER;
+    --auxstatus INTEGER;
+begin
+    RETURN QUERY
+    select s.rollno, s.name, s.batch, sub.name, sc.marks, sc.status
+    -- into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
+    from (students s join scores sc on s.rollno = sc.student_rollno) join subjects sub on sub.id = sc.subject_id
+    where sub.id = subid;
+    -- RETURN ret;
+    -- RETURN NEXT;
+end; 
+$$
+LANGUAGE plpgsql;
+"""
 ############################################################################
 
 # SEARCH_STUDENT_ROLLNO_CALL = """
@@ -254,7 +282,6 @@ $$ LANGUAGE plpgsql
 dbname = os.environ.get("DATABASE_NAME")
 user = os.environ.get("DATABASE_USER")
 password = os.environ.get("DATABASE_PASSWORD")
-# print(dbname, user, password)
 y = "dbname=" + dbname + " user=" + user + " password=" + password
 connection = psycopg2.connect(y)
 
@@ -274,6 +301,12 @@ def get_subjects():
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(SELECT_ALL_SUBJECTS)
+            return cursor.fetchall()
+
+def get_students():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(SELECT_ALL_STUDENTS)
             return cursor.fetchall()
 
 def add_student(rollno, name, batch):
@@ -305,6 +338,13 @@ def search_student_rollno(rollno):
         with connection.cursor() as cursor:
             cursor.execute(SEARCH_STUDENT_ROLLNO, (rollno,))
             cursor.execute("SELECT * FROM SEARCH_STUDENT_ROLLNO_( %s); ", (rollno,))
+            return cursor.fetchall()
+        
+def filter_by_subject(subid):
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(FILTER_BY_SUBJECT, (subid,))
+            cursor.execute("SELECT * FROM FILTER_BY_SUBJECT( %s); ", (subid,))
             return cursor.fetchall()
 
 def update_score(new_marks, rollno, subject):

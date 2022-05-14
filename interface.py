@@ -26,11 +26,16 @@ def get_selected_row(event):
         pass
 
 
-def view_command():
-    list1.delete(0, END)
-    for row in database.view():
-        list1.insert(END, row)
+# def view_command():
+#     list1.delete(0, END)
+#     for row in database.view():
+#         list1.insert(END, row)
 
+def filter_by_subject_command():
+        list1.delete(0, END)
+        if (e4.get() and e4.get().strip()) :
+                for row in database.filter_by_subject(subject.get()):
+                        list1.insert(END, row)    
 
 def search_command():
         list1.delete(0, END)
@@ -44,22 +49,69 @@ def search_command():
         elif (e4.get() and e4.get().strip()) :
                 for row in database.search_subject(subject.get()):
                         list1.insert(END, row)
-    
 
-def insert_command():
-        database.insert(title_text.get(), author_text.get(), year_text.get(), isbn_text.get())
+def add_student_command():
         list1.delete(0, END)
-        list1.insert(END, (title_text.get(), author_text.get(), year_text.get(), isbn_text.get()))
+        print(e1.get(), e2.get(), e3.get(), e4.get(), e5.get(), e6.get())
+        if (e1.get() and e1.get().strip() and e2.get() and e2.get().strip() and e3.get() and e3.get().strip()) :
+                database.add_student(roll_no.get(), name.get(), batch_no.get())
+                        # list1.insert(END, row)    
+
+def add_subject_command():
+        list1.delete(0, END)
+        print(e1.get(), e2.get(), e3.get(), e4.get(), e5.get(), e6.get())
+        if (e2.get() and e2.get().strip()) :
+                database.add_subject(name.get())#:
+                        # list1.insert(END, row)
+        # database.insert(title_text.get(), author_text.get(), year_text.get(), isbn_text.get())
+        # list1.delete(0, END)
+        # list1.insert(END, (title_text.get(), author_text.get(), year_text.get(), isbn_text.get()))
    
 def delete_command():
         database.delete(selected_tuple[0])
 
+def add_score_subject_command():
+        list1.delete(0, END)
+        if (e1.get() and e1.get().strip and e4.get() and e4.get().strip and e5.get() and e5.get().strip and e6.get() and e6.get().strip):
+                for row in database.add_score_subject(roll_no.get(), subject.get(), marks.get(), status.get()):
+                        list1.insert(END, row)
+
+def show_students_command():
+        list1.delete(0, END)
+        for row in database.get_students():
+                        list1.insert(END, row)
+
+def show_subjects_command():
+        list1.delete(0, END)
+        for row in database.get_subjects():
+                        list1.insert(END, row)
+
 def update_command():
-        database.update(selected_tuple[0], title_text.get(), author_text.get(), year_text.get(), isbn_text.get())
+        list1.delete(0, END)
+        print(e1.get(), e2.get(), e3.get(), e4.get(), e5.get(), e6.get())
+        if (e1.get() and e1.get().strip and e2.get() and e2.get().strip):
+                for row in database.update_student_name(name.get(), roll_no.get()):
+                        list1.insert(END, row)
+
+        list1.delete(0, END)
+        if (e1.get() and e1.get().strip and e3.get() and e3.get().strip):
+                for row in database.update_student_batch(batch_no.get(), roll_no.get()):
+                        list1.insert(END, row)
+
+        list1.delete(0, END)
+        if (e1.get() and e1.get().strip and e4.get() and e4.get().strip and e5.get() and e5.get().strip):
+                for row in database.update_score(marks.get(), roll_no.get(), subject.get()):
+                        list1.insert(END, row)
+
+        list1.delete(0, END)
+        if (e1.get() and e1.get().strip and e4.get() and e4.get().strip and e6.get() and e6.get().strip):
+                for row in database.update_status(status.get(), roll_no.get(), subject.get()):
+                        list1.insert(END, row)
 
 
 window=Tk()
 window.wm_title("Student Result")
+database.create_tables()
 
 l1 = Label(window, text="Roll No.")
 l1.grid(row=0, column=0)
@@ -104,17 +156,25 @@ sb1.configure(command=list1.yview)
 
 list1.bind('<<ListboxSelect>>', get_selected_row) 
 
-b1=Button(window, text="View all", width = 12, command=view_command)
+b1=Button(window, text="View all students", width = 15, command=show_students_command)
 b1.grid(row=2, column=5)
-b2=Button(window, text="Search entry", width = 12, command=search_command)
+b2=Button(window, text="Search entry", width = 15, command=search_command)
 b2.grid(row=3, column=5)
-b3=Button(window, text="Add entry", width = 12, command=insert_command)
+b3=Button(window, text="Add student", width = 15, command=add_student_command)
 b3.grid(row=4, column=5)
-b4=Button(window, text="Update selected", width = 12, command=update_command)
+b4=Button(window, text="Add subject", width = 15, command=add_subject_command)
 b4.grid(row=5, column=5)
-b5=Button(window, text="Delete selected", width = 12, command=delete_command)
+b5=Button(window, text="Add score", width = 15, command=add_score_subject_command)
 b5.grid(row=6, column=5)
-b6=Button(window, text="Close", width = 12, command=window.destroy)
+b6=Button(window, text="Update selected", width = 15, command=update_command)
 b6.grid(row=7, column=5)
+b7=Button(window, text="Delete selected", width = 15, command=delete_command)
+b7.grid(row=8, column=5)
+b8=Button(window, text="Show subjects", width = 15, command=show_subjects_command)
+b8.grid(row=9, column=5)
+b9=Button(window, text="Filter by SubjectID", width = 15, command=filter_by_subject_command)
+b9.grid(row=10, column=5)
+b10=Button(window, text="Close", width = 15, command=window.destroy)
+b10.grid(row=11, column=5)
 
 window.mainloop()
