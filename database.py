@@ -27,6 +27,7 @@ CREATE_SCORES_TABLE = """CREATE TABLE IF NOT EXISTS scores (
 
 INSERT_SUBJECT = "INSERT INTO subjects (name) VALUES (%s)"
 SELECT_ALL_SUBJECTS = "SELECT * FROM subjects;" 
+SELECT_ALL_STUDENTS = "SELECT * FROM students;" 
 INSERT_STUDENT = "INSERT INTO students (rollno, name, batch) VALUES (%s, %s, %s)"
 INSERT_MARKS_SUBJECT = "INSERT INTO scores (student_rollno, subject_id, marks, status) VALUES (%s, %s, %s, %s)"
 SELECT_MARKS_STUDENT = """SELECT scores.*
@@ -37,14 +38,10 @@ WHERE students.rollno = %s;"""
 SEARCH_SUBJECT = """SELECT * FROM subjects WHERE name LIKE %s;"""
 
 SEARCH_STUDENT_ROLLNO = """
-DROP FUNCTION SEARCH_STUDENT_ROLLNO_(roll integer);
---DROP TYPE my_type;
-
---CREATE TYPE my_type AS (auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER);
 
 CREATE OR REPLACE FUNCTION SEARCH_STUDENT_ROLLNO_(roll integer)
 RETURNS TABLE(auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
---RETURNS setof my_type 
+-- RETURNS setof my_type 
 AS 
 $$
 declare
@@ -58,16 +55,43 @@ declare
 begin
     RETURN QUERY
     select s.name, s.batch, sub.name, sc.marks, sc.status
-    --into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
+    -- into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
     from (students s join scores sc on s.rollno = sc.student_rollno) join subjects sub on sub.id = sc.subject_id
     where s.rollno = roll;
-    --RETURN ret;
-    --RETURN NEXT;
+    -- RETURN ret;
+    -- RETURN NEXT;
 end; 
 $$
 LANGUAGE plpgsql;
 """
 
+FILTER_BY_SUBJECT = """
+
+CREATE OR REPLACE FUNCTION FILTER_BY_SUBJECT(subid integer)
+RETURNS TABLE(auxrollno INTEGER, auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
+-- RETURNS setof my_type 
+AS 
+$$
+declare
+    --ret my_type;
+    ret RECORD; 
+    --auxname TEXT;
+    --auxbatch TEXT;
+    --auxsubname TEXT;
+    --auxmarks INTEGER;
+    --auxstatus INTEGER;
+begin
+    RETURN QUERY
+    select s.rollno, s.name, s.batch, sub.name, sc.marks, sc.status
+    -- into ret.auxname, ret.auxbatch, ret.auxsubname, ret.auxmarks, ret.auxstatus
+    from (students s join scores sc on s.rollno = sc.student_rollno) join subjects sub on sub.id = sc.subject_id
+    where sub.id = subid;
+    -- RETURN ret;
+    -- RETURN NEXT;
+end; 
+$$
+LANGUAGE plpgsql;
+"""
 ############################################################################
 
 # SEARCH_STUDENT_ROLLNO_CALL = """
@@ -206,22 +230,29 @@ LANGUAGE PLPGSQL
 
 SEARCH_STUDENT_BATCH = """
 CREATE OR REPLACE FUNCTION SEARCH_STUDENT_BATCH(batch_no varchar)
-returns setof students
+-- returns table(auxname TEXT, auxbatch TEXT, auxsubname TEXT, auxmarks INTEGER, auxstatus INTEGER)
+-- returns SETOF RECORD
+returns table(auxrollno INTEGER, auxname TEXT, auxbatch TEXT)
 AS 
 $$
-DECLARE ret record;
+DECLARE 
+    -- ret record;
     -- Cursor
-    entries CURSOR FOR 
-        SELECT * from students where batch=batch_no;
+    -- entries CURSOR FOR SELECT * from students ORDER BY batch;
 BEGIN
-    OPEN entries;
+    RETURN QUERY
+    SELECT * FROM students where batch = batch_no;
+    -- OPEN entries;
 
-    LOOP
-    fetch entries into ret;
-        exit when ret = null;
-        return next ret;
-    END LOOP;
-    close entries;
+    -- LOOP
+    -- fetch entries into ret;
+    --     exit when ret = null;
+    --     if ret.batch  = batch_no then
+    --         return next ret;
+    --     end if;
+    -- END LOOP;  
+    
+    -- CLOSE entries;
 END;
 $$ LANGUAGE plpgsql
 """
@@ -272,6 +303,12 @@ def get_subjects():
             cursor.execute(SELECT_ALL_SUBJECTS)
             return cursor.fetchall()
 
+def get_students():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(SELECT_ALL_STUDENTS)
+            return cursor.fetchall()
+
 def add_student(rollno, name, batch):
     with connection:
         with connection.cursor() as cursor:
@@ -301,6 +338,13 @@ def search_student_rollno(rollno):
         with connection.cursor() as cursor:
             cursor.execute(SEARCH_STUDENT_ROLLNO, (rollno,))
             cursor.execute("SELECT * FROM SEARCH_STUDENT_ROLLNO_( %s); ", (rollno,))
+            return cursor.fetchall()
+        
+def filter_by_subject(subid):
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(FILTER_BY_SUBJECT, (subid,))
+            cursor.execute("SELECT * FROM FILTER_BY_SUBJECT( %s); ", (subid,))
             return cursor.fetchall()
 
 def update_score(new_marks, rollno, subject):
@@ -340,4 +384,5 @@ def search_student_batch(batch):
         with connection.cursor() as cursor:
             cursor.execute(SEARCH_STUDENT_BATCH, (batch,))
             cursor.execute("SELECT * FROM SEARCH_STUDENT_BATCH(%s); ", (batch,))
-            return cursor.fetchall()
+            rows = cursor.fetchall()
+            return rows
