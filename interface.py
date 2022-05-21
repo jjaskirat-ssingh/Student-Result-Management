@@ -3,7 +3,6 @@ import database
 
 # database = Database("books.db")
 
-
 def get_selected_row(event):
     global selected_tuple
     try:
@@ -60,21 +59,44 @@ def add_student_command():
 def add_subject_command():
         list1.delete(0, END)
         print(e1.get(), e2.get(), e3.get(), e4.get(), e5.get(), e6.get())
-        if (e2.get() and e2.get().strip()) :
-                database.add_subject(name.get())#:
+        if (e4.get() and e4.get().strip()) :
+                database.add_subject(subject.get())#:
                         # list1.insert(END, row)
         # database.insert(title_text.get(), author_text.get(), year_text.get(), isbn_text.get())
         # list1.delete(0, END)
         # list1.insert(END, (title_text.get(), author_text.get(), year_text.get(), isbn_text.get()))
    
 def delete_command():
-        database.delete(selected_tuple[0])
+        # database.delete(selected_tuple[0])
+        list1.delete(0, END)
+        try :
+                print(e1.get(), e2.get(), e3.get(), e4.get(), e5.get(), e6.get())
+                if (e2.get() and e2.get().strip):
+                        for row in database.delete_student_name(name.get()):
+                                list1.insert(END, row)
+
+                list1.delete(0, END)
+                if (e1.get() and e1.get().strip):
+                        for row in database.delete_student_roll(roll_no.get()):
+                                list1.insert(END, row)
+
+                list1.delete(0, END)
+                if (e4.get() and e4.get().strip):
+                        for row in database.delete_subject(subject.get()):
+                                list1.insert(END, row)
+        except :
+                list1.insert(END,"no value entered")
+        # list1.delete(0, END)
+        # if (e1.get() and e1.get().strip and e4.get() and e4.get().strip and e6.get() and e6.get().strip):
+        #         for row in database.update_status(status.get(), roll_no.get(), subject.get()):
+        #                 list1.insert(END, row)
 
 def add_score_subject_command():
         list1.delete(0, END)
         if (e1.get() and e1.get().strip and e4.get() and e4.get().strip and e5.get() and e5.get().strip and e6.get() and e6.get().strip):
-                for row in database.add_score_subject(roll_no.get(), subject.get(), marks.get(), status.get()):
-                        list1.insert(END, row)
+                database.add_score_subject(roll_no.get(),subject.get(),marks.get(),status.get())
+                # for row in database.add_score_subject(roll_no.get(), subject.get(), marks.get(), status.get()):
+                #         list1.insert(END, row)
 
 def show_students_command():
         list1.delete(0, END)
@@ -107,9 +129,13 @@ def update_command():
         if (e1.get() and e1.get().strip and e4.get() and e4.get().strip and e6.get() and e6.get().strip):
                 for row in database.update_status(status.get(), roll_no.get(), subject.get()):
                         list1.insert(END, row)
-
-
+def filter_by_subject() :
+        list1.delete(0, END)
+        if (e4.get() and e4.get().split()):
+                for row in database.filter_by_subject(subject.get()) :
+                        list1.insert(END, row)
 window=Tk()
+# database.drop_tables()
 window.wm_title("Student Result")
 database.create_tables()
 
@@ -172,7 +198,7 @@ b7=Button(window, text="Delete selected", width = 15, command=delete_command)
 b7.grid(row=8, column=5)
 b8=Button(window, text="Show subjects", width = 15, command=show_subjects_command)
 b8.grid(row=9, column=5)
-b9=Button(window, text="Filter by SubjectID", width = 15, command=filter_by_subject_command)
+b9=Button(window, text="Filter by subject ID", width = 15, command=filter_by_subject_command)
 b9.grid(row=10, column=5)
 b10=Button(window, text="Close", width = 15, command=window.destroy)
 b10.grid(row=11, column=5)

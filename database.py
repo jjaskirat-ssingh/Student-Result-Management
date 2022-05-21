@@ -21,8 +21,8 @@ CREATE_SCORES_TABLE = """CREATE TABLE IF NOT EXISTS scores (
     subject_id INTEGER,
     marks INTEGER,
     status INT CHECK (status=1 OR status=0), 
-    FOREIGN KEY(student_rollno) REFERENCES students(rollno),
-    FOREIGN KEY(subject_id) REFERENCES subjects(id)
+    FOREIGN KEY(student_rollno) REFERENCES students(rollno) ON DELETE CASCADE,
+    FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 );"""
 
 INSERT_SUBJECT = "INSERT INTO subjects (name) VALUES (%s)"
@@ -98,20 +98,20 @@ LANGUAGE plpgsql;
 #     call SEARCH_STUDENT_ROLLNO(rollno);
 # """
 
-# STATUS_UPDATE_TRIGGER_FUNCTION = """
-# create or replace function update_status_func()
-# 	returns trigger
-# 	language plpgsql
-# 	as 
-# $$
-# begin
-# 	if NEW.marks > 33 then
-# 		update score set status = 1;
-# 	end if;
-# 	return new
-# end
-# $$
-# """
+STATUS_UPDATE_TRIGGER_FUNCTION = """
+create or replace function update_status_func()
+	returns trigger
+	language plpgsql
+	as 
+$$
+begin
+	if NEW.marks > 33 then
+		update score set status = 1;
+	end if;
+	return new
+end
+$$
+"""
 
 # # create trigger status_update
 # # 	after update
@@ -130,19 +130,19 @@ LANGUAGE plpgsql;
 # # $$
 # # LANGUAGE plpythonu;
 
-# STATUS_UPDATE_TRIGGER = """
-# CREATE FUNCTION STATUS_UPDATE_TRIGGER
-# RETURNS TRIGGER 
-# AS $$
-# BEGIN
-#   after update
-#   ON scores
-#   for each row
-#   execute function update_status_func();
-# END;
-# $$
-# LANGUAGE plpythonu;
-# """
+STATUS_UPDATE_TRIGGER = """
+CREATE FUNCTION STATUS_UPDATE_TRIGGER
+RETURNS TRIGGER 
+AS $$
+BEGIN
+  after update, insert
+  ON scores
+  for each row
+  execute function update_status_func();
+END;
+$$
+LANGUAGE plpgsql;
+"""
 
 ############################################################################
 
@@ -291,6 +291,15 @@ def create_tables():
             cursor.execute(CREATE_SUBJECTS_TABLE)
             cursor.execute(CREATE_STUDENTS_TABLE)
             cursor.execute(CREATE_SCORES_TABLE)
+            
+
+def drop_tables():
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("""DROP TABLE IF EXISTS students, subjects, scores""")
+            # cursor.execute(CREATE_STUDENTS_TABLE)
+            # cursor.execute(CREATE_SCORES_TABLE)
+
 
 def add_subject(name):
     with connection:
@@ -317,9 +326,11 @@ def add_student(rollno, name, batch):
 def add_score_subject(student_rollno, subject_id, marks, status):
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(INSERT_MARKS_SUBJECT, (student_rollno, subject_id, marks, status))
-            # cursor.execute(STATUS_UPDATE_TRIGGER_FUNCTION)
             # cursor.execute(STATUS_UPDATE_TRIGGER)
+            # cursor.execute(STATUS_UPDATE_TRIGGER_FUNCTION)
+            
+            cursor.execute(INSERT_MARKS_SUBJECT, (student_rollno, subject_id, marks, status))
+            
 
 def get_scores_student(rollno):
     with connection:
@@ -386,3 +397,32 @@ def search_student_batch(batch):
             cursor.execute("SELECT * FROM SEARCH_STUDENT_BATCH(%s); ", (batch,))
             rows = cursor.fetchall()
             return rows
+        
+def delete_student_name(name) :
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_STUDENT_NAME, (name,))
+            return cursor.fetchall()
+
+DELETE_STUDENT_NAME = """DELETE FROM students where name = (%s);
+                         SELECT * FROM students;"""
+                         
+        
+def delete_student_roll(name) :
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_STUDENT_ROLL, (name,))
+            return cursor.fetchall()
+
+DELETE_STUDENT_ROLL = """DELETE FROM students where rollno = (%s);
+                         SELECT * FROM students;"""
+
+        
+def delete_subject(name) :
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_SUBJECT, (name,))
+            return cursor.fetchall()
+
+DELETE_SUBJECT = """DELETE FROM subjects where name = (%s);
+                         SELECT * FROM subjects;"""
